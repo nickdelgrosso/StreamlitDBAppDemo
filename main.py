@@ -1,7 +1,8 @@
 import streamlit as st
-from repos import JsonPatientRepo
+from repos import JsonPatientRepo, SqlitePatientRepo
 
-repo = JsonPatientRepo()
+# repo = JsonPatientRepo()
+repo = SqlitePatientRepo()
 
 "# Patient Logger"
 

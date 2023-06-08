@@ -8,7 +8,7 @@ from uuid import uuid4
 import duckdb
 import pandas as pd
 
-from .abc import IPatientRepo
+from .base import IPatientRepo
 
 
 class JsonPatientRepo(IPatientRepo):
