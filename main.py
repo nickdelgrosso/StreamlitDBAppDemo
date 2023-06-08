@@ -1,6 +1,7 @@
 import streamlit as st
-import repo
+from repos import JsonPatientRepo
 
+repo = JsonPatientRepo()
 
 "# Patient Logger"
 
