@@ -2,7 +2,8 @@ import streamlit as st
 from repos import JsonPatientRepo, SqlitePatientRepo
 
 # repo = JsonPatientRepo()
-repo = SqlitePatientRepo()
+repo = SqlitePatientRepo(path='patients.db')
+repo.create_db()
 
 "# Patient Logger"
 
