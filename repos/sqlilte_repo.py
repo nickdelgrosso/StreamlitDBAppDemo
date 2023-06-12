@@ -5,7 +5,7 @@ from typing import Optional
 from uuid import uuid4
 import pandas as pd
 from sqlalchemy import Text, create_engine, MetaData, Table, Column, String, Integer, UUID, DateTime, delete, insert, join, select, text
-
+from sqlalchemy_utils import create_view
 
 try:
     from repos.base import IPatientRepo
@@ -34,6 +34,23 @@ class SqlitePatientRepo(IPatientRepo):
             Column('patient_id', String),
             Column('comment', String),
         )
+        
+        self.full_session_stmt = (
+        select(
+            self.sessions_table.c.id,
+            self.patients_table.c.name, 
+            self.patients_table.c.age, 
+            self.sessions_table.c.comment,
+        )
+        .join_from(    
+
+            self.patients_table, 
+            self.sessions_table, 
+            self.patients_table.c.id == self.sessions_table.c.patient_id
+        )
+        )
+        
+        create_view(name='sessions_full', selectable=self.full_session_stmt, metadata=metadata)
         
         self.metadata = metadata
         self.conn = self.engine.connect()
@@ -65,24 +82,11 @@ class SqlitePatientRepo(IPatientRepo):
         
     
     def get_full_sessions(self) -> pd.DataFrame:
-        stmt = (
-        select(
-            self.sessions_table.c.id,
-            self.patients_table.c.name, 
-            self.patients_table.c.age, 
-            self.sessions_table.c.comment,
-        )
-        .join_from(
-            self.patients_table, 
-            self.sessions_table, 
-            self.patients_table.c.id == self.sessions_table.c.patient_id
-        )
-        )
-        
-        return pd.read_sql_query(stmt, con=self.conn)
-        
-    #   stmt = select(user_table, address_table).join_from(
-    #     user_table, address_table, user_table.c.id == address_table.c.user_id
+        return pd.read_sql_query(self.full_session_stmt, con=self.conn)
+    
+    def get_full_sessions_view(self) -> pd.DataFrame:
+        return pd.read_sql_query('SELECT * FROM sessions_full', con=self.conn)  # read_sql_table doesn't seem to work on views, says table does't exist.
+    
     
 if __name__ == '__main__':
     
@@ -110,4 +114,6 @@ if __name__ == '__main__':
     print(repo.get_all_sessions(), end='\n\n')
     
     print(repo.get_full_sessions(), end='\n\n')
+    
+    print(repo.get_full_sessions_view(), end='\n\n')
     
