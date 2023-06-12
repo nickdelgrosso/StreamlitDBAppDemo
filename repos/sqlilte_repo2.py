@@ -10,6 +10,7 @@ except:
     from base import IPatientRepo
 
 
+
                 
 
 class SqlitePatientRepoNative(IPatientRepo):
@@ -59,9 +60,7 @@ class SqlitePatientRepoNative(IPatientRepo):
         self.conn.commit()
         
     def get_all_patients(self) -> pd.DataFrame | None:
-        names = [row[1] for row in self.conn.execute("PRAGMA table_info(patients);").fetchall()]
-        data = self.conn.execute("SELECT * FROM patients").fetchall()
-        df = pd.DataFrame(data=data, columns=names)
+        df = get_table_as_df(self.conn, 'patients')
         df['created_on'] = pd.to_datetime(df.created_on)
         return df
 
@@ -76,19 +75,19 @@ class SqlitePatientRepoNative(IPatientRepo):
         )
         
     def get_all_sessions(self) -> pd.DataFrame | None:
-        names = [row[1] for row in self.conn.execute("PRAGMA table_info(sessions);").fetchall()]
-        data = self.conn.execute("SELECT * FROM sessions").fetchall()
-        df = pd.DataFrame(data=data, columns=names)
-        return df
+        return get_table_as_df(self.conn, 'sessions')
     
     def get_full_session_info(self) -> pd.DataFrame | None:
-        names = [row[1] for row in self.conn.execute("PRAGMA table_info(sessions_full);").fetchall()]
-        data = self.conn.execute("SELECT * FROM sessions_full;").fetchall()
-        df = pd.DataFrame(data=data, columns=names)
-        return df
+        return get_table_as_df(self.conn, 'sessions_full')
     
     
     
+def get_table_as_df(conn: sqlite3.Connection, tablename: str) -> pd.DataFrame | None:
+    names = [row[1] for row in conn.execute(f"PRAGMA table_info({tablename});").fetchall()]    
+    data = conn.execute(f"SELECT * FROM {tablename}").fetchall()
+    return pd.DataFrame(data=data, columns=names)
+    
+
 if __name__ == '__main__':
     with contextlib.suppress():
         os.remove('test.db')
@@ -104,3 +103,5 @@ if __name__ == '__main__':
     print(repo.get_all_sessions(), end='\n\n')
     
     print(repo.get_full_session_info(), end='\n\n')
+    
+    
