@@ -1,8 +1,13 @@
+import contextlib
 from datetime import datetime
+import os
 import sqlite3
 from uuid import uuid4
 import pandas as pd
-from repos.base import IPatientRepo
+try:
+    from repos.base import IPatientRepo
+except:
+    from base import IPatientRepo
 
 
                 
@@ -14,21 +19,34 @@ class SqlitePatientRepoNative(IPatientRepo):
         self.conn = sqlite3.connect(path)
                 
     def create_db(self) -> None:
-        try:
-            self.conn.execute("""
-                CREATE TABLE patients(
-                    id VARCHAR PRIMARY KEY,
-                    created_on VARCHAR,
-                    name VARCHAR,
-                    age INTEGER
-                )
-            """)
-            self.conn.commit()
-        except sqlite3.OperationalError:
-            pass
-        
     
-    def save(self, name: str, age: int) -> None:
+        self.conn.execute("""
+            CREATE TABLE patients(
+                id VARCHAR PRIMARY KEY,
+                created_on VARCHAR,
+                name VARCHAR,
+                age INTEGER
+            )
+        """)
+            
+        self.conn.execute("""
+            CREATE TABLE sessions(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                patient_id VARCHAR REFERENCES patients(id),
+                comment VARCHAR
+            )
+        """)
+        
+        self.conn.execute("""
+            CREATE VIEW sessions_full AS
+            SELECT sessions.id, patient_id, name as patient_name, age as patient_age, comment 
+            FROM sessions 
+            JOIN patients ON sessions.patient_id = patients.id
+        """)
+        
+        self.conn.commit()
+    
+    def add_patient(self, name: str, age: int) -> None:
         self.conn.execute(
             "INSERT INTO patients(id, created_on, name, age) VALUES (?, ?, ?, ?)",
             (
@@ -47,9 +65,42 @@ class SqlitePatientRepoNative(IPatientRepo):
         df['created_on'] = pd.to_datetime(df.created_on)
         return df
 
-    def archive(self, id: str) -> None:
+    def archive_patient(self, id: str) -> None:
         self.conn.execute("DELETE FROM patients WHERE  id = ?", (id,))
         self.conn.commit()
     
+    def add_session(self, patient_id: str, comment: str) -> None:
+        self.conn.execute(
+            "INSERT INTO sessions(patient_id, comment) VALUES (?, ?);",
+            (patient_id, comment)
+        )
+        
+    def get_all_sessions(self) -> pd.DataFrame | None:
+        names = [row[1] for row in self.conn.execute("PRAGMA table_info(sessions);").fetchall()]
+        data = self.conn.execute("SELECT * FROM sessions").fetchall()
+        df = pd.DataFrame(data=data, columns=names)
+        return df
+    
+    def get_full_session_info(self) -> pd.DataFrame | None:
+        names = [row[1] for row in self.conn.execute("PRAGMA table_info(sessions_full);").fetchall()]
+        data = self.conn.execute("SELECT * FROM sessions_full;").fetchall()
+        df = pd.DataFrame(data=data, columns=names)
+        return df
     
     
+    
+if __name__ == '__main__':
+    with contextlib.suppress():
+        os.remove('test.db')
+        
+    repo = SqlitePatientRepoNative(path='test.db')
+    repo.create_db()
+    repo.add_patient(name='Nick DG', age=35)
+    patients = repo.get_all_patients()
+    print(patients, end='\n\n')
+    
+    first_id = patients.iloc[0].id
+    repo.add_session(patient_id=first_id, comment='Healthy.')
+    print(repo.get_all_sessions(), end='\n\n')
+    
+    print(repo.get_full_session_info(), end='\n\n')

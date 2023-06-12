@@ -13,7 +13,7 @@ from .base import IPatientRepo
 
 class JsonPatientRepo(IPatientRepo):
         
-    def save(self, name: str, age: int):
+    def add_patient(self, name: str, age: int):
         id = str(uuid4())
         created_on = datetime.now().isoformat()
         json_str = json.dumps({'id': id, 'created_on': created_on, 'name': name, 'age': age})
@@ -31,5 +31,5 @@ class JsonPatientRepo(IPatientRepo):
             return None
         
         
-    def archive(self, id: str) -> None:
+    def archive_patient(self, id: str) -> None:
         os.remove(f'data/patients/{id}.json')

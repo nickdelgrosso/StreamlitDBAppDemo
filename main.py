@@ -13,7 +13,7 @@ enter_tab, view_tab = st.tabs(["Enter Patient", "View/Edit Patients"])
 with enter_tab:
     name = st.text_input(label='Name', placeholder="John Smith")
     age = st.slider('Age', 18, 31, step=1)
-    submitted = st.button('Submit', on_click=lambda: repo.save(name=name, age=age))
+    submitted = st.button('Submit', on_click=lambda: repo.add_patient(name=name, age=age))
 
 with view_tab:
     patients = repo.get_all_patients()
@@ -27,7 +27,7 @@ with view_tab:
         if do_archive:
             patients_to_archive = patients[patients_edited['Archive']]
             for _, patient in patients_to_archive.iterrows():
-                repo.archive(id=patient.id)
+                repo.archive_patient(id=patient.id)
             st.experimental_rerun()
             
         
